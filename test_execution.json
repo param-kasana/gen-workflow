@@ -1,0 +1,61 @@
+{
+  "featureName": "Explore <phone>",
+  "scenarioName": "User explores <phone> on Telstra websiteUser explores <phone> on Telstra website",
+  "steps": [
+    {
+      "description": "Given the url <url>",
+      "output": {
+        "url": "https://www.telstra.com.au/mobile-phones",
+        "final_url": "https://www.telstra.com.au/mobile-phones",
+        "title": "Mobile Phones & Plans from Telstra",
+        "status_code": 200,
+        "ok": true
+      },
+      "timestamp": 1761706039.2896519,
+      "tabId": null,
+      "type": "navigate",
+      "force_new_tab": false
+    },
+    {
+      "description": "When I click \"Explore iPhone 17 Pro\" button",
+      "output": null,
+      "timestamp": 1761706048.647258,
+      "tabId": null,
+      "type": "select_option",
+      "elementText": "Explore iPhone 17 Pro",
+      "elementTag": "A",
+      "attributes": {
+        "class": "tcom-marquee-banner__button--primary-white",
+        "href": "/mobile-phones/mobiles-on-a-plan/apple/iphone-17-pro",
+        "tag": "a"
+      },
+      "selector": [
+        {
+          "type": "cssSelector",
+          "value": "[md: '87']",
+          "priority": "2"
+        },
+        {
+          "type": "textSelector",
+          "value": "text=\"Explore iPhone 17 Pro\"",
+          "priority": "3"
+        },
+        {
+          "type": "xpath",
+          "value": "//*[@id=\"main-content\"]/div[1]/div[1]/section[1]/div[2]/div[1]/div[1]/div[1]/div[1]/a[1]",
+          "priority": "4"
+        },
+        {
+          "type": "hasText",
+          "value": "a:has-text(\"Explore iPhone 17 Pro\")",
+          "priority": "6"
+        },
+        {
+          "type": "nthSelector",
+          "value": "a >> nth=0",
+          "priority": "7"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "metadata": {
+    "featureName": "Explore <phone>",
+    "scenarioName": "User explores <phone> on Telstra websiteUser explores <phone> on Telstra website",
+    "source": "test_execution.json",
+    "created_at": "2025-10-29T15:14:11.169177",
+    "summary": "The test verifies the user's ability to explore a specific phone model on the Telstra website. It involves navigating to the provided URL and selecting the \"Explore iPhone 17 Pro\" option. Key checkpoints include successful page navigation and the correct selection of the phone exploration feature.",
+    "input_schema": [
+      {
+        "name": "url",
+        "type": "string",
+        "required": true,
+        "example": "https://www.telstra.com.au/mobile-phones",
+        "description": "URL to navigate to at the start of the scenario"
+      },
+      {
+        "name": "button_text",
+        "type": "string",
+        "required": true,
+        "example": "Explore iPhone 17 Pro",
+        "description": "Text of the button to click during the scenario"
+      },
+      {
+        "name": "phone",
+        "type": "string",
+        "required": true,
+        "example": "iPhone 17 Pro",
+        "description": "Phone model being explored"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": 1,
+      "description": "Given the url <url>",
+      "timestamp": 1761706039.2896519,
+      "output": {
+        "url": "https://www.telstra.com.au/mobile-phones",
+        "final_url": "https://www.telstra.com.au/mobile-phones",
+        "title": "Mobile Phones & Plans from Telstra",
+        "status_code": 200,
+        "ok": true
+      },
+      "type": "navigate",
+      "force_new_tab": false
+    },
+    {
+      "id": 2,
+      "description": "When I click <button> button",
+      "timestamp": 1761706048.647258,
+      "type": "select_option",
+      "elementText": "Explore iPhone 17 Pro",
+      "elementTag": "A",
+      "attributes": {
+        "class": "tcom-marquee-banner__button--primary-white",
+        "href": "/mobile-phones/mobiles-on-a-plan/apple/iphone-17-pro",
+        "tag": "a"
+      },
+      "selector": [
+        {
+          "type": "cssSelector",
+          "value": "[md: '87']",
+          "priority": 2
+        },
+        {
+          "type": "textSelector",
+          "value": "text=\"Explore iPhone 17 Pro\"",
+          "priority": 3
+        },
+        {
+          "type": "xpath",
+          "value": "//*[@id=\"main-content\"]/div[1]/div[1]/section[1]/div[2]/div[1]/div[1]/div[1]/div[1]/a[1]",
+          "priority": 4
+        },
+        {
+          "type": "hasText",
+          "value": "a:has-text(\"Explore iPhone 17 Pro\")",
+          "priority": 6
+        },
+        {
+          "type": "nthSelector",
+          "value": "a >> nth=0",
+          "priority": 7
+        }
+      ]
+    }
+  ]
+}
