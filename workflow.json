@@ -3,8 +3,8 @@
     "featureName": "Explore <phone>",
     "scenarioName": "User explores <phone> on Telstra websiteUser explores <phone> on Telstra website",
     "source": "test_execution.json",
-    "created_at": "2025-10-30T12:53:58.324684",
-    "summary": "This test verifies the user's ability to explore a specific phone model on the Telstra website. It involves navigating to the provided URL and selecting the \"Explore iPhone 17 Pro\" option. Key checkpoints include successful page navigation and the correct selection of the explore button to ensure the feature functions as intended.",
+    "created_at": "2025-10-30T14:22:39.762497",
+    "summary": "The test verifies the user's ability to explore a specific phone model on the Telstra website. It involves navigating to the provided URL and clicking the \"Explore iPhone 17 Pro\" button. Key checkpoints include successful page navigation and the correct selection of the explore option for the phone.",
     "input_schema": [
       {
         "name": "phone",
@@ -35,8 +35,7 @@
       "description": "Given the url <url>",
       "timestamp": 1761706039.2896519,
       "output": {
-        "url": "https://www.telstra.com.au/mobile-phones",
-        "final_url": "https://www.telstra.com.au/mobile-phones",
+        "url": "<url>",
         "title": "Mobile Phones & Plans from Telstra",
         "status_code": 200,
         "ok": true
@@ -49,7 +48,7 @@
       "description": "When I click <button_text> button",
       "timestamp": 1761706048.647258,
       "type": "select_option",
-      "elementText": "Explore iPhone 17 Pro",
+      "elementText": "<button_text>",
       "elementTag": "A",
       "attributes": {
         "class": "tcom-marquee-banner__button--primary-white",
@@ -64,17 +63,17 @@
         },
         {
           "type": "textSelector",
-          "value": "text=\"Explore iPhone 17 Pro\"",
+          "value": "text=\"<button_text>\"",
           "priority": 3
         },
         {
           "type": "xpath",
-          "value": "//*[@id=\"main-content\"]/div[1]/div[1]/section[1]/div[2]/div[1]/div[1]/div[1]/div[1]/a[1]",
+          "value": "//*[@id=\"<button_text>\"]/div[1]/div[1]/section[1]/div[2]/div[1]/div[1]/div[1]/div[1]/a[1]",
           "priority": 4
         },
         {
           "type": "hasText",
-          "value": "a:has-text(\"Explore iPhone 17 Pro\")",
+          "value": "a:has-text(\"<button_text>\")",
           "priority": 6
         },
         {

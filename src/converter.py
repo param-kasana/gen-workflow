@@ -13,7 +13,6 @@ from .schemas import (
     InputSchemaField,
     CategorizedStep,
     SelectorInfo,
-    ValidationRule,
 )
 
 logger = logging.getLogger(__name__)
@@ -124,34 +123,207 @@ class TestExecutionConverter:
         Returns:
             CategorizedStep object
         """
-        # Convert selectors
+        # Extract placeholders from description and map to actual values
+        placeholders = self._extract_placeholders_from_text(step.description)
+        placeholder_to_value = self._map_placeholders_to_values(step, placeholders)
+        
+        # Get output and replace values with placeholders, remove final_url
+        output = None
+        if step.output:
+            output_dict = step.output.model_dump(exclude_none=True)
+            # Remove final_url
+            output_dict.pop("final_url", None)
+            # Replace values with placeholders
+            output = self._replace_values_with_placeholders(output_dict, placeholder_to_value)
+        
+        # Replace elementText with placeholder if matched
+        element_text = step.elementText
+        if element_text and placeholder_to_value:
+            element_text = self._replace_element_text_with_placeholder(
+                element_text, placeholder_to_value
+            )
+        
+        # Replace values in attributes
+        attributes = None
+        if step.attributes:
+            attrs_dict = step.attributes.model_dump(by_alias=True)
+            attributes = self._replace_values_with_placeholders(attrs_dict, placeholder_to_value)
+        
+        # Convert selectors and replace values with placeholders
         selectors = None
         if step.selector:
-            selectors = [
-                SelectorInfo(
-                    type=sel.type,
-                    value=sel.value,
-                    priority=int(sel.priority) if sel.priority else 999,
+            selectors = []
+            for sel in step.selector:
+                value = sel.value
+                # Replace actual values in selector with placeholders
+                if placeholder_to_value:
+                    value = self._replace_text_with_placeholders(value, placeholder_to_value)
+                
+                selectors.append(
+                    SelectorInfo(
+                        type=sel.type,
+                        value=value,
+                        priority=int(sel.priority) if sel.priority else 999,
+                    )
                 )
-                for sel in step.selector
-            ]
 
         # Create categorized step keeping original structure
         categorized_step = CategorizedStep(
             id=step_id,
             description=step.description,
             timestamp=step.timestamp,
-            output=step.output.model_dump(exclude_none=True) if step.output else None,
+            output=output,
             tabId=step.tabId,
             type=step.type,
             force_new_tab=step.force_new_tab,
-            elementText=step.elementText,
+            elementText=element_text,
             elementTag=step.elementTag,
-            attributes=step.attributes.model_dump(by_alias=True) if step.attributes else None,
+            attributes=attributes,
             selector=selectors,
         )
 
         return categorized_step
+
+    def _extract_placeholders_from_text(self, text: str) -> List[str]:
+        """Extract placeholder names from text.
+        
+        Args:
+            text: Text containing placeholders like <url>, <button_text>
+            
+        Returns:
+            List of placeholder names
+        """
+        import re
+        if not text:
+            return []
+        
+        pattern = r'<([^>]+)>'
+        matches = re.findall(pattern, text)
+        return matches
+
+    def _map_placeholders_to_values(
+        self, step: Any, placeholder_names: List[str]
+    ) -> Dict[str, str]:
+        """Map placeholder names to their actual values in step data.
+        
+        Args:
+            step: Step object
+            placeholder_names: List of placeholder names from description
+            
+        Returns:
+            Dictionary mapping placeholder name to placeholder string (e.g., {"url": "<url>"})
+        """
+        mapping = {}
+        
+        for placeholder_name in placeholder_names:
+            placeholder_lower = placeholder_name.lower()
+            placeholder_str = f"<{placeholder_name}>"
+            mapping[placeholder_name] = placeholder_str
+        
+        return mapping
+
+    def _replace_values_with_placeholders(
+        self, data: Dict[str, Any], placeholder_to_value: Dict[str, str]
+    ) -> Dict[str, Any]:
+        """Replace actual values in dictionary with placeholders where matched.
+        
+        Args:
+            data: Dictionary with actual values
+            placeholder_to_value: Dictionary mapping placeholder names to placeholder strings (e.g., {"url": "<url>"})
+            
+        Returns:
+            Dictionary with placeholders replacing actual values
+        """
+        if not data or not placeholder_to_value:
+            return data
+        
+        result = {}
+        placeholder_names = list(placeholder_to_value.keys())
+        
+        for key, value in data.items():
+            # Check if key matches a placeholder (e.g., "url" matches "<url>")
+            key_lower = key.lower()
+            matched_placeholder = None
+            
+            for placeholder_name in placeholder_names:
+                placeholder_lower = placeholder_name.lower()
+                # Match if key is exactly the placeholder name or contains it
+                if key_lower == placeholder_lower or key_lower == placeholder_lower.replace("_", ""):
+                    matched_placeholder = placeholder_to_value[placeholder_name]
+                    break
+            
+            if matched_placeholder:
+                # Replace value with placeholder
+                result[key] = matched_placeholder
+            else:
+                # Keep original value
+                result[key] = value
+        
+        return result
+
+    def _replace_element_text_with_placeholder(
+        self, element_text: str, placeholder_to_value: Dict[str, str]
+    ) -> str:
+        """Replace elementText with placeholder if it matches.
+        
+        Args:
+            element_text: Actual element text
+            placeholder_to_value: Dictionary mapping placeholder names to placeholder strings
+            
+        Returns:
+            Placeholder string if matched, otherwise original text
+        """
+        # Try to match elementText with placeholders
+        # Common patterns: button_text, text, element, link, etc.
+        for placeholder_name, placeholder_str in placeholder_to_value.items():
+            placeholder_lower = placeholder_name.lower()
+            # Check if placeholder name suggests this is the element text
+            if any(keyword in placeholder_lower for keyword in ['button', 'text', 'element', 'link', 'label']):
+                return placeholder_str
+        
+        return element_text
+
+    def _replace_text_with_placeholders(
+        self, text: str, placeholder_to_value: Dict[str, str]
+    ) -> str:
+        """Replace text content with placeholder if it contains actual values.
+        
+        Args:
+            text: Text to check (e.g., selector value)
+            placeholder_to_value: Dictionary mapping placeholder names to placeholder strings
+            
+        Returns:
+            Text with placeholders replacing actual values
+        """
+        if not text or not placeholder_to_value:
+            return text
+        
+        # For selectors, replace quoted values that match elementText patterns
+        # Look for patterns like: text="actual value" and replace with text="<placeholder>"
+        import re
+        
+        result = text
+        for placeholder_name, placeholder_str in placeholder_to_value.items():
+            placeholder_lower = placeholder_name.lower()
+            # If placeholder suggests element text (button, text, etc.)
+            if any(keyword in placeholder_lower for keyword in ['button', 'text', 'element', 'link']):
+                # Try to replace quoted strings that might contain the element text
+                # This handles cases like: text="Explore iPhone 17 Pro"
+                # Pattern: match quoted strings
+                pattern = r'(")([^"]+)(")'
+                
+                def replace_quoted(match):
+                    quoted_value = match.group(2)
+                    # Replace with placeholder
+                    return f'"{placeholder_str}"'
+                
+                # Simple replacement: if text contains quotes, replace the quoted part
+                if '"' in result:
+                    # Find the first quoted section and replace it
+                    result = re.sub(r'"[^"]*"', f'"{placeholder_str}"', result, count=1)
+                    break
+        
+        return result
 
     def _extract_input_schema(self, test_execution: Any) -> List[InputSchemaField]:
         """Extract input schema by finding <placeholders> in test execution.
