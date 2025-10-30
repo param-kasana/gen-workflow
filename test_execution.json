@@ -17,7 +17,7 @@
       "force_new_tab": false
     },
     {
-      "description": "When I click \"Explore iPhone 17 Pro\" button",
+      "description": "When I click <button_text> button",
       "output": null,
       "timestamp": 1761706048.647258,
       "tabId": null,

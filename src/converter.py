@@ -84,37 +84,9 @@ class TestExecutionConverter:
             steps_summary,
         )
 
-        # Generate input schema from placeholders
-        logger.info("Generating input schema...")
-        step_descriptions = [step.description for step in test_execution.steps]
-        step_descriptions.insert(0, test_execution.featureName)
-        step_descriptions.insert(1, test_execution.scenarioName)
-        
-        # Prepare execution data for example extraction
-        execution_data = {
-            "feature": test_execution.featureName,
-            "scenario": test_execution.scenarioName,
-            "steps": [
-                {
-                    "description": step.description,
-                    "elementText": step.elementText,
-                    "output": step.output.model_dump(exclude_none=True) if step.output else None,
-                }
-                for step in test_execution.steps
-            ]
-        }
-        
-        input_schema_data = self.llm_client.generate_input_schema(
-            metadata_dict["feature_name"],
-            metadata_dict["scenario_name"],
-            step_descriptions,
-            execution_data,
-        )
-        
-        # Convert to InputSchemaField objects
-        input_schema = [
-            InputSchemaField(**field) for field in input_schema_data
-        ] if input_schema_data else []
+        # Generate input schema from placeholders (extract <variables> only)
+        logger.info("Extracting input schema from placeholders...")
+        input_schema = self._extract_input_schema(test_execution)
 
         # Create workflow metadata with summary and input schema
         metadata = WorkflowMetadata(
@@ -180,6 +152,108 @@ class TestExecutionConverter:
         )
 
         return categorized_step
+
+    def _extract_input_schema(self, test_execution: Any) -> List[InputSchemaField]:
+        """Extract input schema by finding <placeholders> in test execution.
+        
+        Args:
+            test_execution: TestExecution object
+            
+        Returns:
+            List of InputSchemaField objects
+        """
+        import re
+        
+        placeholders = {}
+        
+        # Search for <placeholder> patterns in all text fields
+        texts_to_search = [
+            test_execution.featureName,
+            test_execution.scenarioName,
+        ]
+        
+        # Add step descriptions
+        for step in test_execution.steps:
+            texts_to_search.append(step.description)
+        
+        # Pattern to match <variable>
+        pattern = r'<([^>]+)>'
+        
+        # Find all placeholders
+        for text in texts_to_search:
+            if text:
+                matches = re.findall(pattern, text)
+                for match in matches:
+                    if match not in placeholders:
+                        placeholders[match] = {
+                            "name": match,
+                            "found_in": text
+                        }
+        
+        # Create schema fields by matching with actual data
+        schema_fields = []
+        
+        for placeholder_name, info in placeholders.items():
+            example_value = self._find_example_value(
+                placeholder_name, 
+                test_execution
+            )
+            
+            # Infer type from example value
+            param_type = "string"
+            if isinstance(example_value, bool):
+                param_type = "boolean"
+            elif isinstance(example_value, int):
+                param_type = "number"
+            elif isinstance(example_value, float):
+                param_type = "number"
+            
+            schema_fields.append(
+                InputSchemaField(
+                    name=placeholder_name,
+                    type=param_type,
+                    required=True,
+                    example=example_value,
+                    description=f"Parameter for {placeholder_name}"
+                )
+            )
+        
+        logger.info(f"Extracted {len(schema_fields)} parameters from placeholders")
+        return schema_fields
+
+    def _find_example_value(self, placeholder_name: str, test_execution: Any) -> Any:
+        """Find example value for a placeholder by matching with execution data.
+        
+        Args:
+            placeholder_name: Name of the placeholder (without brackets)
+            test_execution: TestExecution object
+            
+        Returns:
+            Example value for the placeholder
+        """
+        # Map common placeholder names to data
+        placeholder_lower = placeholder_name.lower()
+        
+        # Check for URL
+        if placeholder_lower in ['url', 'link', 'website']:
+            for step in test_execution.steps:
+                if step.output and step.output.url:
+                    return step.output.url
+        
+        # Check for phone/product in element text
+        if placeholder_lower in ['phone', 'product', 'model', 'item']:
+            for step in test_execution.steps:
+                if step.elementText and any(keyword in step.elementText.lower() for keyword in ['iphone', 'samsung', 'pixel']):
+                    return step.elementText
+        
+        # Check for button text
+        if placeholder_lower in ['button', 'link', 'text']:
+            for step in test_execution.steps:
+                if step.elementText:
+                    return step.elementText
+        
+        # Default: return placeholder name as example
+        return f"example_{placeholder_name}"
 
     def save_workflow(self, workflow: Workflow, output_file: str) -> None:
         """Save workflow to JSON file.

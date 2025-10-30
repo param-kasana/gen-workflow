@@ -1,6 +1,5 @@
 """Prompt templates for LLM interactions."""
 
-import json
 from typing import Dict, Any, List
 
 
@@ -93,81 +92,6 @@ Steps:
 {steps_text}
 
 Provide ONLY the summary, no additional text or headings."""
-        return prompt
-
-    @staticmethod
-    def generate_input_schema(
-        feature_name: str,
-        scenario_name: str,
-        step_descriptions: List[str],
-        execution_data: Dict[str, Any],
-    ) -> str:
-        """Generate prompt for input schema extraction.
-        
-        Args:
-            feature_name: Feature name
-            scenario_name: Scenario name
-            step_descriptions: List of step descriptions
-            execution_data: Actual execution data with values
-            
-        Returns:
-            Prompt string
-        """
-        steps_text = "\n".join([f"- {desc}" for desc in step_descriptions])
-        
-        prompt = f"""Analyze this test workflow and generate an input schema for parameterized values.
-
-Feature: {feature_name}
-Scenario: {scenario_name}
-
-Step Descriptions:
-{steps_text}
-
-Execution Data (for extracting example values):
-{json.dumps(execution_data, indent=2)}
-
-Instructions:
-1. Identify parameterizable values in two ways:
-   a) Placeholders in angle brackets: <placeholder>, <url>, <phone>, <button>
-   b) Quoted values in descriptions: "Explore iPhone 17 Pro", "https://example.com"
-   
-2. Analyze the context and determine what should be parameterized:
-   - URLs, phone models, product names, search queries
-   - Button text, link text, element text that varies per test
-   - User inputs, form data, credentials
-   - Skip generic terms like "button", "link", "click" unless they're specific identifiers
-
-3. For each unique parameter, create a schema entry with:
-   - name: meaningful parameter name (e.g., "phone_model", "url", "product_name", "button_text")
-   - type: inferred type (string, number, boolean, etc.) - default to "string" if unsure
-   - required: true (assume all parameters are required)
-   - example: extract actual value from execution data if available
-   - description: brief description of what this parameter represents and where it's used
-
-4. Merge similar parameters (e.g., if "iPhone 17 Pro" appears in multiple places, create one "phone_model" parameter)
-
-Return ONLY a valid JSON array of objects. Each object must have: name, type, required, example, description.
-If no parameterizable values are found, return an empty array: []
-
-Example output format:
-[
-  {{
-    "name": "url",
-    "type": "string",
-    "required": true,
-    "example": "https://www.telstra.com.au/mobile-phones",
-    "description": "URL to navigate to at the start"
-  }},
-  {{
-    "name": "phone_model",
-    "type": "string",
-    "required": true,
-    "example": "iPhone 17 Pro",
-    "description": "Phone model to explore"
-  }}
-]
-
-Respond with ONLY valid JSON array, no additional text."""
         return prompt
 
     @staticmethod

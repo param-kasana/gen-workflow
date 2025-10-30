@@ -3,29 +3,29 @@
     "featureName": "Explore <phone>",
     "scenarioName": "User explores <phone> on Telstra websiteUser explores <phone> on Telstra website",
     "source": "test_execution.json",
-    "created_at": "2025-10-29T15:14:11.169177",
-    "summary": "The test verifies the user's ability to explore a specific phone model on the Telstra website. It involves navigating to the provided URL and selecting the \"Explore iPhone 17 Pro\" option. Key checkpoints include successful page navigation and the correct selection of the phone exploration feature.",
+    "created_at": "2025-10-30T12:53:58.324684",
+    "summary": "This test verifies the user's ability to explore a specific phone model on the Telstra website. It involves navigating to the provided URL and selecting the \"Explore iPhone 17 Pro\" option. Key checkpoints include successful page navigation and the correct selection of the explore button to ensure the feature functions as intended.",
     "input_schema": [
+      {
+        "name": "phone",
+        "type": "string",
+        "required": true,
+        "example": "Explore iPhone 17 Pro",
+        "description": "Parameter for phone"
+      },
       {
         "name": "url",
         "type": "string",
         "required": true,
         "example": "https://www.telstra.com.au/mobile-phones",
-        "description": "URL to navigate to at the start of the scenario"
+        "description": "Parameter for url"
       },
       {
         "name": "button_text",
         "type": "string",
         "required": true,
-        "example": "Explore iPhone 17 Pro",
-        "description": "Text of the button to click during the scenario"
-      },
-      {
-        "name": "phone",
-        "type": "string",
-        "required": true,
-        "example": "iPhone 17 Pro",
-        "description": "Phone model being explored"
+        "example": "example_button_text",
+        "description": "Parameter for button_text"
       }
     ]
   },
@@ -46,7 +46,7 @@
     },
     {
       "id": 2,
-      "description": "When I click <button> button",
+      "description": "When I click <button_text> button",
       "timestamp": 1761706048.647258,
       "type": "select_option",
       "elementText": "Explore iPhone 17 Pro",

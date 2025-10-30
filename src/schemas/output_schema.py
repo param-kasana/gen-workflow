@@ -15,6 +15,15 @@ class InputSchemaField(BaseModel):
     description: Optional[str] = Field(None, description="Description of the parameter")
 
 
+class InputSchemaList(BaseModel):
+    """Wrapper for list of input schema fields."""
+    
+    parameters: List[InputSchemaField] = Field(
+        default_factory=list, 
+        description="List of input parameters extracted from the workflow"
+    )
+
+
 class WorkflowMetadata(BaseModel):
     """Metadata about the workflow."""
 

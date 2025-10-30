@@ -7,8 +7,9 @@ from typing import Optional, Dict, Any
 import time
 from dotenv import load_dotenv
 
-from openai import OpenAI
-from openai import OpenAIError
+from langchain_openai import ChatOpenAI
+from langchain.output_parsers import PydanticOutputParser, OutputFixingParser
+from langchain.schema import HumanMessage, SystemMessage
 
 # Load environment variables from .env file
 load_dotenv()
@@ -17,14 +18,14 @@ logger = logging.getLogger(__name__)
 
 
 class LLMClient:
-    """Client for interacting with OpenAI API."""
+    """Client for interacting with OpenAI via LangChain."""
     
     # Default configuration
     DEFAULT_MODEL = "gpt-4.1-nano"
     DEFAULT_TEMPERATURE = 0.3
 
     def __init__(self, api_key: Optional[str] = None, model_name: Optional[str] = None):
-        """Initialize LLM client.
+        """Initialize LLM client with LangChain ChatOpenAI.
         
         Args:
             api_key: OpenAI API key (defaults to OPENAI_API_KEY from .env)
@@ -34,12 +35,18 @@ class LLMClient:
         if not self.api_key:
             raise ValueError("OpenAI API key not provided. Set OPENAI_API_KEY in .env file.")
 
-        self.client = OpenAI(api_key=self.api_key)
         self.model_name = model_name or self.DEFAULT_MODEL
         self.temperature = self.DEFAULT_TEMPERATURE
+        
+        # Create LangChain ChatOpenAI instance
+        self.llm = ChatOpenAI(
+            model=self.model_name,
+            temperature=self.temperature,
+            api_key=self.api_key,
+        )
 
     def _call_api(self, prompt: str, max_retries: int = 3) -> str:
-        """Call OpenAI API with retry logic.
+        """Call OpenAI API via LangChain with retry logic.
         
         Args:
             prompt: Prompt to send to the API
@@ -49,32 +56,26 @@ class LLMClient:
             Response text from the API
             
         Raises:
-            OpenAIError: If API call fails after retries
+            Exception: If API call fails after retries
         """
+        system_msg = SystemMessage(
+            content="You are a helpful assistant that analyzes test automation steps and provides structured, concise responses."
+        )
+        human_msg = HumanMessage(content=prompt)
+        
         for attempt in range(max_retries):
             try:
-                response = self.client.chat.completions.create(
-                    model=self.model_name,
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": "You are a helpful assistant that analyzes test automation steps and provides structured, concise responses.",
-                        },
-                        {"role": "user", "content": prompt},
-                    ],
-                    temperature=self.temperature,
-                )
-
-                return response.choices[0].message.content.strip()
-
-            except OpenAIError as e:
+                response = self.llm.invoke([system_msg, human_msg])
+                return response.content.strip()
+                
+            except Exception as e:
                 logger.warning(f"API call failed (attempt {attempt + 1}/{max_retries}): {e}")
                 if attempt < max_retries - 1:
                     time.sleep(2 ** attempt)  # Exponential backoff
                 else:
                     raise
-
-        raise OpenAIError("API call failed after all retries")
+        
+        raise Exception("API call failed after all retries")
 
     def categorize_step(self, step_data: Dict[str, Any]) -> str:
         """Categorize a step using LLM.
@@ -162,40 +163,4 @@ class LLMClient:
         logger.info(f"Generated workflow summary: {summary[:100]}...")
         return summary
 
-    def generate_input_schema(
-        self,
-        feature_name: str,
-        scenario_name: str,
-        step_descriptions: list,
-        execution_data: dict,
-    ) -> list:
-        """Generate input schema from placeholders in test workflow.
-        
-        Args:
-            feature_name: Feature name
-            scenario_name: Scenario name
-            step_descriptions: List of step descriptions
-            execution_data: Execution data with actual values
-            
-        Returns:
-            List of input schema fields
-        """
-        from .prompts import PromptTemplates
-
-        prompt = PromptTemplates.generate_input_schema(
-            feature_name, scenario_name, step_descriptions, execution_data
-        )
-        response = self._call_api(prompt)
-        
-        try:
-            # Parse JSON response
-            schema = json.loads(response)
-            if not isinstance(schema, list):
-                logger.warning("Input schema response is not a list, returning empty list")
-                return []
-            logger.info(f"Generated input schema with {len(schema)} parameters")
-            return schema
-        except json.JSONDecodeError as e:
-            logger.warning(f"Failed to parse input schema JSON: {e}")
-            return []
 
